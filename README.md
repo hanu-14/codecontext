@@ -1,6 +1,14 @@
 # codecontext
 
-**Extract your codebase context for AI assistants.**
+<p align="center">
+  <b>Extract your codebase context for AI assistants.</b><br>
+  <a href="https://github.com/hanu-14/codecontext/actions/workflows/ci.yml">
+    <img src="https://github.com/hanu-14/codecontext/actions/workflows/ci.yml/badge.svg" alt="CI">
+  </a>
+  <img src="https://img.shields.io/badge/python-3.9%2B-blue" alt="Python 3.9+">
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT">
+  <img src="https://img.shields.io/badge/dependencies-0-brightgreen" alt="Zero dependencies">
+</p>
 
 A zero-dependency CLI tool that packages your project structure, key files, and git history into a formatted prompt for Claude, ChatGPT, and other AI coding assistants.
 
