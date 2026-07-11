@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ctxcode"
-version = "0.2.2"
+version = "0.2.3"
 description = "Extract your codebase context for AI assistants"
 readme = "README.md"
 license = {text = "MIT"}

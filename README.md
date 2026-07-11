@@ -8,7 +8,7 @@
   <img src="https://img.shields.io/badge/python-3.9%2B-blue" alt="Python 3.9+">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT">
   <img src="https://img.shields.io/badge/dependencies-0-brightgreen" alt="Zero dependencies">
-  <img src="https://img.shields.io/badge/version-0.2.2-blue" alt="v0.2.2">
+  <img src="https://img.shields.io/badge/version-0.2.3-blue" alt="v0.2.3">
 </p>
 
 A zero-dependency CLI tool that packages your project structure, key files, and git history into a formatted prompt for Claude, ChatGPT, and other AI coding assistants.
