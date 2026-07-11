@@ -1,11 +1,40 @@
+import json
 import os
+import shutil
 import sys
+import textwrap
 
 from . import scanner
 from . import git_utils
 
 
-def format_context(root, include_git=True, max_files=200, max_lines=200):
+LANG_MAP = {
+    ".py": "python", ".js": "javascript", ".ts": "typescript",
+    ".tsx": "tsx", ".jsx": "jsx", ".rs": "rust", ".go": "go",
+    ".java": "java", ".c": "c", ".cpp": "cpp", ".h": "c",
+    ".hpp": "cpp", ".rb": "ruby", ".php": "php", ".swift": "swift",
+    ".kt": "kotlin", ".scala": "scala", ".r": "r",
+    ".yaml": "yaml", ".yml": "yaml", ".json": "json",
+    ".toml": "toml", ".xml": "xml", ".md": "markdown",
+    ".html": "html", ".css": "css", ".scss": "scss",
+    ".sql": "sql", ".sh": "bash", ".bash": "bash",
+    ".zsh": "bash", ".dockerfile": "dockerfile",
+    ".txt": "text", ".cfg": "ini", ".ini": "ini",
+}
+
+
+def build_stats(root, key_files):
+    total_files = len(key_files)
+    total_size = 0
+    for _, abs_path in key_files:
+        try:
+            total_size += os.path.getsize(abs_path)
+        except OSError:
+            pass
+    return {"files": total_files, "size": total_size, "dir": root}
+
+
+def format_markdown(root, include_git, max_files, max_lines, extra_ignore, show_hidden):
     blocks = []
 
     blocks.append("# Codebase Context\n")
@@ -22,28 +51,17 @@ def format_context(root, include_git=True, max_files=200, max_lines=200):
         if info.get("recent_commits"):
             blocks.append(f"\nRecent commits:\n```\n{info['recent_commits']}\n```")
 
-    tree = scanner.get_tree(root, max_files=max_files)
+    tree = scanner.get_tree(root, max_files=max_files, extra_ignore=extra_ignore, show_hidden=show_hidden)
     blocks.append(f"\n## Project Structure\n\n```\n{tree}\n```\n")
 
-    key_files = scanner.find_key_files(root)
-    blocks.append(f"\n## Key Files\n")
+    key_files = scanner.find_key_files(root, extra_ignore=extra_ignore)
+    stats = build_stats(root, key_files)
+
+    blocks.append(f"\n## Key Files ({stats['files']} files, {stats['size'] / 1024:.0f}KB)\n")
 
     for rel_path, abs_path in key_files:
         ext = os.path.splitext(rel_path)[1].lower()
-        lang_map = {
-            ".py": "python", ".js": "javascript", ".ts": "typescript",
-            ".tsx": "tsx", ".jsx": "jsx", ".rs": "rust", ".go": "go",
-            ".java": "java", ".c": "c", ".cpp": "cpp", ".h": "c",
-            ".hpp": "cpp", ".rb": "ruby", ".php": "php", ".swift": "swift",
-            ".kt": "kotlin", ".scala": "scala", ".r": "r",
-            ".yaml": "yaml", ".yml": "yaml", ".json": "json",
-            ".toml": "toml", ".xml": "xml", ".md": "markdown",
-            ".html": "html", ".css": "css", ".scss": "scss",
-            ".sql": "sql", ".sh": "bash", ".bash": "bash",
-            ".zsh": "bash", ".dockerfile": "dockerfile",
-            ".txt": "text", ".cfg": "ini", ".ini": "ini",
-        }
-        lang = lang_map.get(ext, "")
+        lang = LANG_MAP.get(ext, "")
         content = scanner.read_file(abs_path, max_lines=max_lines)
         blocks.append(f"\n### `{rel_path}`\n\n```{lang}\n{content}```")
 
@@ -51,49 +69,178 @@ def format_context(root, include_git=True, max_files=200, max_lines=200):
     return "\n".join(blocks)
 
 
+def format_plain(root, include_git, max_files, max_lines, extra_ignore, show_hidden):
+    lines = []
+
+    lines.append(f"Project: {os.path.abspath(root)}\n")
+
+    if include_git:
+        info = git_utils.get_git_info(root)
+        if info.get("remote"):
+            lines.append(f"Remote: {info['remote']}")
+        if info.get("branch"):
+            lines.append(f"Branch: {info['branch']}")
+        if info.get("uncommitted"):
+            lines.append(f"\nUncommitted:\n{info['uncommitted']}")
+
+    lines.append(f"\nProject Structure:\n{scanner.get_tree(root, max_files=max_files, extra_ignore=extra_ignore, show_hidden=show_hidden)}\n")
+
+    key_files = scanner.find_key_files(root, extra_ignore=extra_ignore)
+    for rel_path, abs_path in key_files:
+        content = scanner.read_file(abs_path, max_lines=max_lines)
+        sep = "=" * 60
+        lines.append(f"\n{sep}\nFile: {rel_path}\n{sep}\n{content}")
+
+    return "\n".join(lines)
+
+
+def format_json(root, include_git, max_files, max_lines, extra_ignore, show_hidden):
+    info = {}
+    info["root"] = os.path.abspath(root)
+
+    if include_git:
+        info["git"] = git_utils.get_git_info(root)
+
+    info["tree"] = scanner.get_tree(root, max_files=max_files, extra_ignore=extra_ignore, show_hidden=show_hidden)
+
+    key_files = scanner.find_key_files(root, extra_ignore=extra_ignore)
+    info["files"] = []
+    for rel_path, abs_path in key_files:
+        info["files"].append({
+            "path": rel_path,
+            "content": scanner.read_file(abs_path, max_lines=max_lines),
+        })
+
+    info["stats"] = build_stats(root, key_files)
+    return json.dumps(info, indent=2)
+
+
+FORMATTERS = {
+    "markdown": format_markdown,
+    "plain": format_plain,
+    "json": format_json,
+}
+
+
+def merge_config_with_args(config, args):
+    if args.no_git is None and "git" in config:
+        args.no_git = not config["git"]
+    if args.max_files is None and "max_files" in config:
+        args.max_files = config["max_files"]
+    if args.max_lines is None and "max_lines" in config:
+        args.max_lines = config["max_lines"]
+    if args.format is None and "format" in config:
+        args.format = config["format"]
+    if args.exclude is None and "exclude" in config:
+        args.exclude = config["exclude"]
+    if args.output is None and "output" in config:
+        args.output = config["output"]
+    if args.hidden is None and "hidden" in config:
+        args.hidden = config["hidden"]
+    return args
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser(
-        description="Extract codebase context for AI assistants."
+        description="Extract codebase context for AI assistants.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=textwrap.dedent("""
+            Examples:
+              codecontext                          # full context (markdown)
+              codecontext --format json             # JSON output
+              codecontext --clipboard               # copy to clipboard
+              codecontext --exclude "*.log" "tmp/"  # custom excludes
+              codecontext --hidden                  # include dotfiles
+              codecontext -o context.txt --format plain  # plain text file
+        """),
     )
     parser.add_argument(
-        "path", nargs="?", default=".",
+        "path", nargs="?", default=None,
         help="Project path (default: current directory)"
     )
     parser.add_argument(
-        "--no-git", action="store_true",
+        "--no-git", action="store_true", default=None,
         help="Skip git information"
     )
     parser.add_argument(
-        "--max-files", type=int, default=200,
+        "--max-files", type=int, default=None,
         help="Maximum files to show in tree (default: 200)"
     )
     parser.add_argument(
-        "--max-lines", type=int, default=200,
+        "--max-lines", type=int, default=None,
         help="Maximum lines per file (default: 200)"
     )
     parser.add_argument(
-        "--output", "-o",
-        help="Write output to file instead of stdout"
+        "--format", "-f", default=None, choices=["markdown", "plain", "json"],
+        help="Output format (default: markdown)"
     )
+    parser.add_argument(
+        "--clipboard", "-c", action="store_true",
+        help="Copy output to clipboard"
+    )
+    parser.add_argument(
+        "--output", "-o", default=None,
+        help="Write output to file"
+    )
+    parser.add_argument(
+        "--exclude", nargs="*", default=None,
+        help="Additional exclude patterns (glob)"
+    )
+    parser.add_argument(
+        "--hidden", action="store_true", default=None,
+        help="Show hidden files"
+    )
+    parser.add_argument(
+        "--quiet", "-q", action="store_true",
+        help="Suppress stderr messages"
+    )
+
     args = parser.parse_args()
+
+    search_root = os.path.abspath(args.path or ".")
+    config = scanner.load_config(search_root)
+    args = merge_config_with_args(config, args)
+
+    if args.path is None:
+        args.path = "."
 
     root = os.path.abspath(args.path)
     if not os.path.isdir(root):
         print(f"error: {root} is not a directory", file=sys.stderr)
         sys.exit(1)
 
-    context = format_context(
+    fmt = args.format or "markdown"
+    formatter = FORMATTERS.get(fmt, FORMATTERS["markdown"])
+
+    extra_ignore = args.exclude or []
+    context = formatter(
         root,
-        include_git=not args.no_git,
-        max_files=args.max_files,
-        max_lines=args.max_lines,
+        include_git=not args.no_git if args.no_git is not None else True,
+        max_files=args.max_files or 200,
+        max_lines=args.max_lines or 200,
+        extra_ignore=extra_ignore,
+        show_hidden=args.hidden or False,
     )
+
+    if args.clipboard:
+        try:
+            shutil.copy(context, None)
+        except Exception:
+            import subprocess
+            try:
+                proc = subprocess.Popen(["clip"], stdin=subprocess.PIPE, shell=True)
+                proc.communicate(input=context.encode("utf-8"))
+                if not args.quiet:
+                    print("Copied to clipboard!", file=sys.stderr)
+            except Exception as e:
+                print(f"Clipboard error: {e}", file=sys.stderr)
 
     if args.output:
         with open(args.output, "w", encoding="utf-8") as f:
             f.write(context)
-        print(f"Written to {args.output}", file=sys.stderr)
+        if not args.quiet:
+            print(f"Written to {args.output}", file=sys.stderr)
     else:
         print(context)
 

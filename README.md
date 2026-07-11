@@ -8,6 +8,7 @@
   <img src="https://img.shields.io/badge/python-3.9%2B-blue" alt="Python 3.9+">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT">
   <img src="https://img.shields.io/badge/dependencies-0-brightgreen" alt="Zero dependencies">
+  <img src="https://img.shields.io/badge/version-0.2.0-blue" alt="v0.2.0">
 </p>
 
 A zero-dependency CLI tool that packages your project structure, key files, and git history into a formatted prompt for Claude, ChatGPT, and other AI coding assistants.
@@ -44,31 +45,62 @@ codecontext
 # Specific project
 codecontext path/to/project
 
+# Output formats
+codecontext --format markdown    # default - ready for AI chat
+codecontext --format plain       # plain text
+codecontext --format json        # machine-readable
+
+# Copy to clipboard
+codecontext --clipboard
+
+# Save to file
+codecontext -o context.md
+
+# Exclude custom patterns
+codecontext --exclude "*.log" "tmp/" "*.csv"
+
+# Show hidden files
+codecontext --hidden
+
 # Exclude git info
 codecontext --no-git
 
 # Adjust limits
 codecontext --max-files 100 --max-lines 150
-
-# Save to file
-codecontext -o context.md
 ```
 
 ### Short alias
 
 ```bash
-ctx          # same as codecontext
-ctx ./src    # specific directory
+ctx                # same as codecontext
+ctx ./src          # specific directory
+ctx --clipboard    # copy to clipboard
 ```
+
+## Configuration
+
+Place a `.codecontext.toml` in your project root:
+
+```toml
+git = true
+max_files = 300
+max_lines = 250
+format = "markdown"
+exclude = ["*.log", "tmp/"]
+hidden = false
+```
+
+JSON and YAML formats are also supported (`.codecontext.json`, `.codecontext.yml`).
 
 ## Output
 
-The tool produces a structured markdown document with:
+The tool produces a structured document with:
 
 1. **Project metadata** — path, git remote, branch
 2. **Git history** — recent commits and uncommitted changes
-3. **File tree** — clean visual tree of your project
+3. **File tree** — with file sizes for every entry
 4. **Key files** — source files with syntax highlighting
+5. **Stats summary** — total files and size at a glance
 
 Perfect for pasting directly into Claude, ChatGPT, or any AI coding assistant.
 
@@ -79,11 +111,16 @@ Perfect for pasting directly into Claude, ChatGPT, or any AI coding assistant.
 - **Git aware** — includes branch, remote, recent commits, and diff stats
 - **File limit safety** — won't overwhelm your context window
 - **Language detection** — syntax-highlighted code blocks for 30+ languages
+- **Clipboard support** — `--clipboard` copies output directly to your clipboard
+- **Multiple formats** — markdown, plain text, or JSON
+- **Config file** — project-specific settings via `.codecontext.toml`
+- **Custom excludes** — ignore additional patterns with `--exclude`
+- **File sizes** — every file in the tree shows its size
 
 ## Example
 
 ```bash
-$ ctx
+$ codecontext --format markdown
 ```
 
 Produces:
@@ -91,9 +128,9 @@ Produces:
 ```
 # Codebase Context
 
-Generated from: `/Users/me/my-project`
-Remote: `git@github.com:user/my-project.git`
-Branch: `main`
+Generated from: /Users/me/my-project
+Remote: git@github.com:user/my-project.git
+Branch: main
 
 Recent commits:
 abc1234 feat: add user authentication
@@ -103,16 +140,42 @@ def5678 fix: resolve payment timeout
 
 my-project/
 ├── src/
-│   ├── main.py
-│   └── utils.py
+│   ├── main.py (2KB)
+│   └── utils.py (1KB)
 ├── tests/
-│   └── test_main.py
-├── pyproject.toml
-└── README.md
+│   └── test_main.py (3KB)
+├── pyproject.toml (1KB)
+└── README.md (3KB)
 
-## Key Files
+## Key Files (6 files, 10KB)
+
+### `src/main.py`
+
+```python
+def greet(name):
+    return f"Hello, {name}!"
+```
+
 ...
 ```
+
+## Changelog
+
+### v0.2.0
+- Clipboard support (`--clipboard`)
+- Multiple output formats: markdown, plain, JSON
+- Configuration file support (`.codecontext.toml`, `.json`, `.yml`)
+- File sizes in tree output
+- Custom exclude patterns (`--exclude`)
+- Hidden files flag (`--hidden`)
+- Stats summary in output
+
+### v0.1.0
+- Initial release
+- File tree with smart ignore patterns
+- Git history integration
+- Syntax highlighting for 30+ languages
+- CLI alias `ctx`
 
 ## License
 
