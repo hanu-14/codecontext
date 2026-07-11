@@ -3,8 +3,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "codecontext"
-version = "0.2.0"
+name = "ctxcode"
+version = "0.2.2"
 description = "Extract your codebase context for AI assistants"
 readme = "README.md"
 license = {text = "MIT"}
@@ -29,11 +29,11 @@ Repository = "https://github.com/hanu-14/codecontext"
 Issues = "https://github.com/hanu-14/codecontext/issues"
 
 [project.scripts]
-codecontext = "codecontext.cli:main"
-ctx = "codecontext.cli:main"
+codecontext = "ctxcode.cli:main"
+ctx = "ctxcode.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/codecontext"]
+packages = ["src/ctxcode"]
 
 [tool.hatch.build.targets.sdist]
 include = ["/src"]

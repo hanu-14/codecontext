@@ -8,13 +8,13 @@
   <img src="https://img.shields.io/badge/python-3.9%2B-blue" alt="Python 3.9+">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT">
   <img src="https://img.shields.io/badge/dependencies-0-brightgreen" alt="Zero dependencies">
-  <img src="https://img.shields.io/badge/version-0.2.0-blue" alt="v0.2.0">
+  <img src="https://img.shields.io/badge/version-0.2.2-blue" alt="v0.2.2">
 </p>
 
 A zero-dependency CLI tool that packages your project structure, key files, and git history into a formatted prompt for Claude, ChatGPT, and other AI coding assistants.
 
 ```bash
-pip install codecontext
+pip install ctxcode
 cd my-project
 codecontext
 ```
@@ -26,14 +26,14 @@ When asking AI assistants about your code, you spend minutes copy-pasting file t
 ## Install
 
 ```bash
-pip install codecontext
+pip install ctxcode
 ```
 
 Or run directly:
 
 ```bash
-curl -O https://raw.githubusercontent.com/hanu-14/codecontext/main/src/codecontext/cli.py
-python cli.py
+curl -O https://raw.githubusercontent.com/hanu-14/codecontext/main/src/ctxcode/cli.py
+python -m ctxcode
 ```
 
 ## Usage
